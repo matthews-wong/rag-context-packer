@@ -26,6 +26,37 @@ print([c.id for c in result.selected])   # ['ops.md#3']
 print(result.dropped)                    # [Dropped(id='faq.md#1', reason='duplicate', ...)]
 ```
 
+## CLI
+
+```
+python3 -m context_packer fixtures/chunks.json --budget 60          # rendered context
+python3 -m context_packer fixtures/chunks.json --budget 30 --json   # selection report
+```
+
+Input is a JSON array of `{id, source, text, score}`. The rendered output
+wraps each chunk in a `<document id=... source=...>` element, escapes `<` in
+chunk text so a document cannot close its own wrapper, and prefixes a notice
+that the content is untrusted.
+
+## Design notes
+
+- Tokens are estimated (`max(chars / 4, words)`), not counted. Pass
+  `count_tokens=` to `pack` to plug in a real tokenizer.
+- MMR runs on min-max normalised scores, so `lambda_` means the same thing
+  for BM25 and for cosine scores.
+- Similarity is word-trigram Jaccard: cheap, deterministic, and good at
+  catching copies, not paraphrases.
+
+## Fixture eval
+
+```
+PYTHONPATH=. python3 scripts/eval_redundancy.py
+```
+
+On the 4-chunk fixture with a 60-token budget, plain top-k fits 2 chunks
+covering 1 distinct fact; the packer fits 3 chunks covering 3. The fixture is
+hand-made to show the mechanism; it is not a benchmark.
+
 ## Tests
 
 ```
